@@ -4,8 +4,9 @@ import math
 
 X_LENGTH = 10.29
 Y_LENGTH = 7.55
-# for scaling the difficulty function
-DIFFICULTY_SCALE = 0.1
+# for scaling the TERRAIN difficulty function
+# higher the scale, harder the terrain features
+DIFFICULTY_SCALE = 5
 
 # from (0,0)
 # x right
@@ -21,10 +22,12 @@ seasons = ['summer', 'spring', 'fall', 'winter']
 open_land = (248, 148, 18, 255)
 rough_meadow = (255, 192, 0, 255)
 run_forest = (255, 255, 255, 255)
+new_run_forest = (255, 255, 255, 100)
 slow_run_forest = (2, 208, 60, 255)
 walk_forest = (2, 136, 40, 255)
 impass = (5, 73, 24, 255)
 water = (0, 0, 255, 255)
+new_water = (0, 0, 255, 100)
 road = (71, 51, 3, 255)
 foot_path = (0, 0, 0, 255)
 out_of_bounds = (205, 0, 101, 255)
@@ -35,20 +38,98 @@ terrain_difficulty_dict = {
     open_land: 3,
     rough_meadow: 6,
     run_forest: 4,
+    new_run_forest: 4,
     slow_run_forest: 5,
     walk_forest: 6,
     impass: 80,  # ripping through
+    new_water: 4,  # ice
     water: 900,  # swimming
-    road: 1,
-    foot_path: 2,
+    road: 0.01,
+    foot_path: 0.0001,
     out_of_bounds: -1
 }
+
+
+def winter_transform(raw_image):
+    border_water = []
+    for x in range(1, 394):
+        for y in range(1, 499):
+            # find the border of waters
+            if raw_image[x, y] == water:
+                if raw_image[x + 1, y] != water or \
+                        raw_image[x - 1, y] != water or \
+                        raw_image[x, y + 1] != water or \
+                        raw_image[x, y - 1] != water:
+                    border_water.append((x, y))
+    ice = set()
+    for pixel in border_water:
+        depth = 0
+        # get neighbors
+        neighbors = [(pixel[0], pixel[1], depth)]
+        local_ice = set()
+        while len(neighbors) > 0:
+            current = neighbors.pop()
+            currentx = current[0]
+            currenty = current[1]
+            # Freeze
+            ice.add((currentx, currenty))
+            local_ice.add((currentx, currenty))
+            if current[2] < 7:
+                if (currentx + 1 < 395):
+                    if (raw_image[currentx + 1, currenty] == water):
+                        if (currentx + 1, currenty) not in local_ice:
+                            neighbors.append((currentx + 1, currenty, current[2] + 1))
+                if (currentx - 1 > 0):
+                    if (raw_image[currentx - 1, currenty] == water):
+                        if (currentx - 1, currenty) not in local_ice:
+                            neighbors.append((currentx - 1, currenty, current[2] + 1))
+                if (currenty + 1 < 500):
+                    if (raw_image[currentx, currenty + 1] == water):
+                        if (currentx, currenty + 1) not in local_ice:
+                            neighbors.append((currentx, currenty + 1, current[2] + 1))
+                if (currenty - 1 > 0):
+                    if (raw_image[currentx, currenty - 1] == water):
+                        if (currentx, currenty - 1) not in local_ice:
+                            neighbors.append((currentx, currenty - 1, current[2] + 1))
+                if (currentx - 1 > 0 and currenty - 1 > 0):
+                    if (raw_image[currentx - 1, currenty - 1] == water):
+                        if (currentx - 1, currenty - 1) not in local_ice:
+                            neighbors.append((currentx - 1, currenty - 1, current[2] + 1))
+                if (currentx - 1 > 0 and currenty + 1 < 500):
+                    if (raw_image[currentx - 1, currenty + 1] == water):
+                        if (currentx - 1, currenty + 1) not in local_ice:
+                            neighbors.append((currentx - 1, currenty + 1, current[2] + 1))
+                if (currentx + 1 < 395 and currenty - 1 > 0):
+                    if (raw_image[currentx + 1, currenty - 1] == water):
+                        if (currentx + 1, currenty - 1) not in local_ice:
+                            neighbors.append((currentx + 1, currenty - 1, current[2] + 1))
+                if (currentx + 1 < 395 and currenty + 1 < 500):
+                    if (raw_image[currentx + 1, currenty + 1] == water):
+                        if (currentx + 1, currenty + 1) not in local_ice:
+                            neighbors.append((currentx + 1, currenty + 1, current[2] + 1))
+    for coord in ice:
+        raw_image[coord[0], coord[1]] = new_water
+
+
+def fall_transform(raw_image):
+    for x in range(1, 394):
+        for y in range(1, 499):
+            if raw_image[x, y] == foot_path:
+                if raw_image[x + 1, y] == run_forest or \
+                        raw_image[x - 1, y] == run_forest or \
+                        raw_image[x, y + 1] == run_forest or \
+                        raw_image[x, y - 1] == run_forest:
+                    raw_image[x, y] = new_run_forest
 
 
 # generates a 2d array of tuples (difficulty, elevation_value) from terrain_diff_dict and elevation txt
 def generate_map(terrain_image_object, elevation_file_object):
     global map_image
     raw_image = terrain_image.load()
+    if season == "fall":
+        fall_transform(raw_image)
+    if season == "winter":
+        winter_transform(raw_image)
     for y in range(0, 500):
         row = []
         elevation_row = elevation_file.readline().split()
@@ -93,7 +174,7 @@ def get_move_difficulty(xy1, xy2):
         elevation_2 = diff_2[1]
         # uphill hard downhill easy
         # uphill -> larger (elevation_2 - elevation_1) value = more difficult move
-        return ((float(elevation_2) - float(elevation_1)) + diff_2[0]) * DIFFICULTY_SCALE
+        return (((float(elevation_2) - float(elevation_1)) + diff_2[0])) * DIFFICULTY_SCALE
 
 
 def get_cardinal_difficulty(x, y, cardinal_direction):
@@ -137,7 +218,6 @@ def find_optimal_path(source, destination):
     closed_list = []
 
     while len(open_list) > 0:
-        print(len(open_list))
         # find lowest f
         current_node = open_list[0]
         current_index = 0
@@ -159,22 +239,22 @@ def find_optimal_path(source, destination):
 
         children = []
         for direction in ["north", "south", "east", "west", "nwest", "neast", "swest", "seast"]:
-            coord, fval = get_cardinal_difficulty(current_node.position[0], current_node.position[1], direction)
-            if fval is not None:
+            coord, gval = get_cardinal_difficulty(current_node.position[0], current_node.position[1], direction)
+            if gval is not None:
                 new_child = Node(current_node, coord)
-                new_child.g = fval
-                new_child.f = fval + get_heuristic_for_move(coord, destination)
-                print(fval)
+                new_child.g = gval
+                new_child.f = gval + get_heuristic_for_move(coord, destination)
                 children.append(new_child)
 
         for child in children:
-            for closed_child in closed_list:
-                if child == closed_child:
-                    continue
+            if child in closed_list:
+                continue
 
-            for open_node in open_list:
-                if child == open_node and child.g > open_node.g:
-                    continue
+            if child in open_list:
+                for node in open_list:
+                    if node.position == child.position:
+                        if child.g > node.g:
+                            continue
 
             open_list.append(child)
 
@@ -182,9 +262,8 @@ def find_optimal_path(source, destination):
 def draw_path(path):
     pixels = terrain_image.load()
     for pair in path:
-        pixels[pair] = (255,0,0,255)
+        pixels[pair] = (255, 0, 0, 255)
     terrain_image.save(output_image_path)
-    terrain_image.show()
 
 
 def main():
@@ -212,11 +291,11 @@ def main():
     except:
         print("Failed to create output file.")
 
-    if season == "summer":
-        # get a 2d array of tuples with difficulty and elevation
-        generate_map(terrain_image, elevation_file)
+    # get a 2d array of tuples with difficulty and elevation
+    generate_map(terrain_image, elevation_file)
 
-        for p in range(0, len(points)-1):
-            draw_path(find_optimal_path(points[p], points[p+1]))
+    for p in range(0, len(points) - 1):
+        draw_path(find_optimal_path(points[p], points[p + 1]))
+
 
 main()
