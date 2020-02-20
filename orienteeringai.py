@@ -109,6 +109,7 @@ def winter_transform(raw_image):
                             neighbors.append((currentx + 1, currenty + 1, current[2] + 1))
     for coord in ice:
         raw_image[coord[0], coord[1]] = new_water
+    print("Winter map generated.")
 
 
 def fall_transform(raw_image):
@@ -120,6 +121,7 @@ def fall_transform(raw_image):
                         raw_image[x, y + 1] == run_forest or \
                         raw_image[x, y - 1] == run_forest:
                     raw_image[x, y] = new_run_forest
+    print("Fall map generated.")
 
 
 # generates a 2d array of tuples (difficulty, elevation_value) from terrain_diff_dict and elevation txt
@@ -265,6 +267,8 @@ def draw_path(path):
         pixels[pair] = (255, 0, 0, 255)
     terrain_image.save(output_image_path)
 
+def path_length(path):
+    return len(path)*X_LENGTH + len(path)*Y_LENGTH
 
 def main():
     global terrain_image, elevation_file, points, season, output_image_path
@@ -294,8 +298,14 @@ def main():
     # get a 2d array of tuples with difficulty and elevation
     generate_map(terrain_image, elevation_file)
 
+    total = 0
     for p in range(0, len(points) - 1):
-        draw_path(find_optimal_path(points[p], points[p + 1]))
+        path = find_optimal_path(points[p], points[p + 1])
+        draw_path(path)
+        length = path_length(path)
+        print("Path found from "+ str(points[p]) + " to " + str(points[p+1]) + " lenght "+ str(length))
+        total += length
+    print("Total path length: "+str(total)+"m \nNew Image file created.")
 
 
 main()
