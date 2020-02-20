@@ -5,7 +5,7 @@ import math
 X_LENGTH = 10.29
 Y_LENGTH = 7.55
 # for scaling the difficulty function
-DIFFICULTY_SCALE = 1
+DIFFICULTY_SCALE = 0.1
 
 # from (0,0)
 # x right
@@ -78,16 +78,16 @@ def get_move_difficulty(xy1, xy2):
 
     # bounds checking
     if x1 < 0 or x2 < 0 or y1 < 0 or y2 < 0:
-        return -1
+        return None
     if x1 > 394 or x2 > 394:
-        return -1
+        return None
     if y1 > 499 or y2 > 499:
-        return -1
+        return None
 
     diff_1 = get_pixel_difficulty(x1, y1)
     diff_2 = get_pixel_difficulty(x2, y2)
     if diff_2[0] < 0:  # out of bounds
-        return -1
+        return None
     else:
         elevation_1 = diff_1[1]
         elevation_2 = diff_2[1]
@@ -120,6 +120,7 @@ class Node():
         self.parent = parent
         self.position = position
         self.f = 0
+        self.g = 0
 
     def __eq__(self, other):
         return self.position == other.position
@@ -136,6 +137,7 @@ def find_optimal_path(source, destination):
     closed_list = []
 
     while len(open_list) > 0:
+        print(len(open_list))
         # find lowest f
         current_node = open_list[0]
         current_index = 0
@@ -158,9 +160,11 @@ def find_optimal_path(source, destination):
         children = []
         for direction in ["north", "south", "east", "west", "nwest", "neast", "swest", "seast"]:
             coord, fval = get_cardinal_difficulty(current_node.position[0], current_node.position[1], direction)
-            if fval > 0:
+            if fval is not None:
                 new_child = Node(current_node, coord)
+                new_child.g = fval
                 new_child.f = fval + get_heuristic_for_move(coord, destination)
+                print(fval)
                 children.append(new_child)
 
         for child in children:
@@ -169,7 +173,7 @@ def find_optimal_path(source, destination):
                     continue
 
             for open_node in open_list:
-                if child == open_node:
+                if child == open_node and child.g > open_node.g:
                     continue
 
             open_list.append(child)
