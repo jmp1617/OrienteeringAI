@@ -148,7 +148,6 @@ def find_optimal_path(source, destination):
 
         # goal found
         if current_node == end_node:
-            print("GOAL FOUND")
             path = []
             current = current_node
             while current is not None:
@@ -209,10 +208,11 @@ def main():
     except:
         print("Failed to create output file.")
 
-    # get a 2d array of tuples with difficulty and elevation
-    generate_map(terrain_image, elevation_file)
+    if season == "summer":
+        # get a 2d array of tuples with difficulty and elevation
+        generate_map(terrain_image, elevation_file)
 
-    for p in range(0, len(points)-1):
-        draw_path(find_optimal_path(points[p], points[p+1]))
+        for p in range(0, len(points)-1):
+            draw_path(find_optimal_path(points[p], points[p+1]))
 
 main()
