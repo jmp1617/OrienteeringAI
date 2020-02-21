@@ -14,6 +14,7 @@ DIFFICULTY_SCALE = 5
 
 terrain_image = None
 elevation_file = None
+elevation_file_path = ''
 points = []
 season = ''
 output_image_path = None
@@ -27,7 +28,7 @@ slow_run_forest = (2, 208, 60, 255)
 walk_forest = (2, 136, 40, 255)
 impass = (5, 73, 24, 255)
 water = (0, 0, 255, 255)
-swamp = (0, 255, 0, 100)
+swamp = (150, 75, 0, 255)
 new_water = (0, 0, 255, 100)
 road = (71, 51, 3, 255)
 foot_path = (0, 0, 0, 255)
@@ -77,36 +78,36 @@ def winter_transform(raw_image):
             ice.add((currentx, currenty))
             local_ice.add((currentx, currenty))
             if current[2] < 7:
-                if (currentx + 1 < 395):
-                    if (raw_image[currentx + 1, currenty] == water):
+                if currentx + 1 < 395:
+                    if raw_image[currentx + 1, currenty] == water:
                         if (currentx + 1, currenty) not in local_ice:
                             neighbors.append((currentx + 1, currenty, current[2] + 1))
-                if (currentx - 1 > 0):
-                    if (raw_image[currentx - 1, currenty] == water):
+                if currentx - 1 > 0:
+                    if raw_image[currentx - 1, currenty] == water:
                         if (currentx - 1, currenty) not in local_ice:
                             neighbors.append((currentx - 1, currenty, current[2] + 1))
-                if (currenty + 1 < 500):
-                    if (raw_image[currentx, currenty + 1] == water):
+                if currenty + 1 < 500:
+                    if raw_image[currentx, currenty + 1] == water:
                         if (currentx, currenty + 1) not in local_ice:
                             neighbors.append((currentx, currenty + 1, current[2] + 1))
-                if (currenty - 1 > 0):
-                    if (raw_image[currentx, currenty - 1] == water):
+                if currenty - 1 > 0:
+                    if raw_image[currentx, currenty - 1] == water:
                         if (currentx, currenty - 1) not in local_ice:
                             neighbors.append((currentx, currenty - 1, current[2] + 1))
-                if (currentx - 1 > 0 and currenty - 1 > 0):
-                    if (raw_image[currentx - 1, currenty - 1] == water):
+                if currentx - 1 > 0 and currenty - 1 > 0:
+                    if raw_image[currentx - 1, currenty - 1] == water:
                         if (currentx - 1, currenty - 1) not in local_ice:
                             neighbors.append((currentx - 1, currenty - 1, current[2] + 1))
-                if (currentx - 1 > 0 and currenty + 1 < 500):
-                    if (raw_image[currentx - 1, currenty + 1] == water):
+                if currentx - 1 > 0 and currenty + 1 < 500:
+                    if raw_image[currentx - 1, currenty + 1] == water:
                         if (currentx - 1, currenty + 1) not in local_ice:
                             neighbors.append((currentx - 1, currenty + 1, current[2] + 1))
-                if (currentx + 1 < 395 and currenty - 1 > 0):
-                    if (raw_image[currentx + 1, currenty - 1] == water):
+                if currentx + 1 < 395 and currenty - 1 > 0:
+                    if raw_image[currentx + 1, currenty - 1] == water:
                         if (currentx + 1, currenty - 1) not in local_ice:
                             neighbors.append((currentx + 1, currenty - 1, current[2] + 1))
-                if (currentx + 1 < 395 and currenty + 1 < 500):
-                    if (raw_image[currentx + 1, currenty + 1] == water):
+                if currentx + 1 < 395 and currenty + 1 < 500:
+                    if raw_image[currentx + 1, currenty + 1] == water:
                         if (currentx + 1, currenty + 1) not in local_ice:
                             neighbors.append((currentx + 1, currenty + 1, current[2] + 1))
     for coord in ice:
@@ -126,61 +127,68 @@ def spring_transform(raw_image):
                         raw_image[x, y - 1] != water:
                     border_water.append((x, y))
 
-    elevation_map =[[]]
+    elevation_map = [[]]
     for y in range(0, 500):
         elevation_map.append(elevation_file.readline().split())
 
     swamp_set = set()
     for pixel in border_water:
-        print(pixel)
         depth = 0
         base_elevation = elevation_map[pixel[1]][pixel[0]]
         # get neighbors
         neighbors = [(pixel[0], pixel[1], base_elevation, depth)]
         local_swamp = set()
         while len(neighbors) > 0:
-            print(len(neighbors))
             current = neighbors.pop()
             currentx = current[0]
             currenty = current[1]
             # Freeze
             swamp_set.add((currentx, currenty))
             local_swamp.add((currentx, currenty))
-            if float(current[2]) < 1+float(base_elevation) and current[3] < 15:
-                if (currentx + 1 < 395):
-                    if (raw_image[currentx + 1, currenty] != water):
+            if float(current[2]) < 1 + float(base_elevation) and current[3] < 15:
+                if currentx + 1 < 395:
+                    if raw_image[currentx + 1, currenty] != water:
                         if (currentx + 1, currenty) not in local_swamp:
-                            neighbors.append((currentx + 1, currenty, elevation_map[currenty][currentx+1], current[3]+1))
-                if (currentx - 1 > 0):
-                    if (raw_image[currentx - 1, currenty] != water):
+                            neighbors.append(
+                                (currentx + 1, currenty, elevation_map[currenty][currentx + 1], current[3] + 1))
+                if currentx - 1 > 0:
+                    if raw_image[currentx - 1, currenty] != water:
                         if (currentx - 1, currenty) not in local_swamp:
-                            neighbors.append((currentx - 1, currenty, elevation_map[currenty][currentx-1], current[3]+1))
-                if (currenty + 1 < 500):
-                    if (raw_image[currentx, currenty + 1] != water):
+                            neighbors.append(
+                                (currentx - 1, currenty, elevation_map[currenty][currentx - 1], current[3] + 1))
+                if currenty + 1 < 500:
+                    if raw_image[currentx, currenty + 1] != water:
                         if (currentx, currenty + 1) not in local_swamp:
-                            neighbors.append((currentx, currenty + 1, elevation_map[currenty+1][currentx], current[3]+1))
-                if (currenty - 1 > 0):
-                    if (raw_image[currentx, currenty - 1] != water):
+                            neighbors.append(
+                                (currentx, currenty + 1, elevation_map[currenty + 1][currentx], current[3] + 1))
+                if currenty - 1 > 0:
+                    if raw_image[currentx, currenty - 1] != water:
                         if (currentx, currenty - 1) not in local_swamp:
-                            neighbors.append((currentx, currenty - 1, elevation_map[currenty-1][currentx], current[3]+1))
-                if (currentx - 1 > 0 and currenty - 1 > 0):
-                    if (raw_image[currentx - 1, currenty - 1] != water):
+                            neighbors.append(
+                                (currentx, currenty - 1, elevation_map[currenty - 1][currentx], current[3] + 1))
+                if currentx - 1 > 0 and currenty - 1 > 0:
+                    if raw_image[currentx - 1, currenty - 1] != water:
                         if (currentx - 1, currenty - 1) not in local_swamp:
-                            neighbors.append((currentx - 1, currenty - 1, elevation_map[currenty-1][currentx-1], current[3]+1))
-                if (currentx - 1 > 0 and currenty + 1 < 500):
-                    if (raw_image[currentx - 1, currenty + 1] != water):
+                            neighbors.append(
+                                (currentx - 1, currenty - 1, elevation_map[currenty - 1][currentx - 1], current[3] + 1))
+                if currentx - 1 > 0 and currenty + 1 < 500:
+                    if raw_image[currentx - 1, currenty + 1] != water:
                         if (currentx - 1, currenty + 1) not in local_swamp:
-                            neighbors.append((currentx - 1, currenty + 1, elevation_map[currenty+1][currentx-1], current[3]+1))
-                if (currentx + 1 < 395 and currenty - 1 > 0):
-                    if (raw_image[currentx + 1, currenty - 1] != water):
+                            neighbors.append(
+                                (currentx - 1, currenty + 1, elevation_map[currenty + 1][currentx - 1], current[3] + 1))
+                if currentx + 1 < 395 and currenty - 1 > 0:
+                    if raw_image[currentx + 1, currenty - 1] != water:
                         if (currentx + 1, currenty - 1) not in local_swamp:
-                            neighbors.append((currentx + 1, currenty - 1, elevation_map[currenty-1][currentx+1], current[3]+1))
-                if (currentx + 1 < 395 and currenty + 1 < 500):
-                    if (raw_image[currentx + 1, currenty + 1] != water):
+                            neighbors.append(
+                                (currentx + 1, currenty - 1, elevation_map[currenty - 1][currentx + 1], current[3] + 1))
+                if currentx + 1 < 395 and currenty + 1 < 500:
+                    if raw_image[currentx + 1, currenty + 1] != water:
                         if (currentx + 1, currenty + 1) not in local_swamp:
-                            neighbors.append((currentx + 1, currenty + 1, elevation_map[currenty+1][currentx+1], current[3]+1))
+                            neighbors.append(
+                                (currentx + 1, currenty + 1, elevation_map[currenty + 1][currentx + 1], current[3] + 1))
     for coord in swamp_set:
-        raw_image[coord[0], coord[1]] = swamp
+        if raw_image[coord[0], coord[1]] != water:
+            raw_image[coord[0], coord[1]] = swamp
     print("Spring map generated.")
 
 
@@ -196,10 +204,9 @@ def fall_transform(raw_image):
     print("Fall map generated.")
 
 
-
 # generates a 2d array of tuples (difficulty, elevation_value) from terrain_diff_dict and elevation txt
-def generate_map(terrain_image_object, elevation_file_object):
-    global map_image
+def generate_map():
+    global map_image, elevation_filef
     raw_image = terrain_image.load()
     if season == "fall":
         fall_transform(raw_image)
@@ -207,7 +214,7 @@ def generate_map(terrain_image_object, elevation_file_object):
         winter_transform(raw_image)
     if season == "spring":
         spring_transform(raw_image)
-    elevatioin_file = open(elevation_file_path)
+    elevation_file = open(elevation_file_path)
     for y in range(0, 500):
         row = []
         elevation_row = elevation_file.readline().split()
@@ -216,7 +223,6 @@ def generate_map(terrain_image_object, elevation_file_object):
         map_image.append(row)
 
 
-# helper function so i dont have to transpose
 def get_pixel_difficulty(x, y):
     return map_image[y][x]
 
@@ -252,7 +258,7 @@ def get_move_difficulty(xy1, xy2):
         elevation_2 = diff_2[1]
         # uphill hard downhill easy
         # uphill -> larger (elevation_2 - elevation_1) value = more difficult move
-        return (((float(elevation_2) - float(elevation_1)) + diff_2[0])) * DIFFICULTY_SCALE
+        return ((float(elevation_2) - float(elevation_1)) + diff_2[0]) * DIFFICULTY_SCALE
 
 
 def get_cardinal_difficulty(x, y, cardinal_direction):
@@ -343,11 +349,13 @@ def draw_path(path):
         pixels[pair] = (255, 0, 0, 255)
     terrain_image.save(output_image_path)
 
+
 def path_length(path):
-    return len(path)*X_LENGTH + len(path)*Y_LENGTH
+    return len(path) * X_LENGTH + len(path) * Y_LENGTH
+
 
 def main():
-    global terrain_image, elevation_file, points, season, output_image_path
+    global terrain_image, elevation_file, points, season, output_image_path, elevation_file_path
     if len(sys.argv) != 6:
         print("Not enough arguments. Exiting.")
         return
@@ -357,6 +365,7 @@ def main():
         print("Error occurred opening image file.")
     try:
         elevation_file = open(sys.argv[2])
+        elevation_file_path = sys.argv[2]
         path_file = open(sys.argv[3])
         for line in path_file:
             points.append((int(line.split(" ")[0]), int(line.split(" ")[1].strip("\n"))))
@@ -372,16 +381,16 @@ def main():
         print("Failed to create output file.")
 
     # get a 2d array of tuples with difficulty and elevation
-    generate_map(terrain_image, elevation_file)
+    generate_map()
 
     total = 0
     for p in range(0, len(points) - 1):
         path = find_optimal_path(points[p], points[p + 1])
         draw_path(path)
         length = path_length(path)
-        print("Path found from "+ str(points[p]) + " to " + str(points[p+1]) + " lenght "+ str(length))
+        print("Path found from " + str(points[p]) + " to " + str(points[p + 1]) + " lenght " + str(length))
         total += length
-    print("Total path length: "+str(total)+"m \nNew Image file created.")
+    print("Total path length: " + str(total) + "m \nNew Image file created.")
 
 
 main()
